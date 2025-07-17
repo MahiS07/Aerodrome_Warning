@@ -141,9 +141,26 @@ def round_up_to_next_half_hour(timestr):
             hour = 0
     return f"{prefix}{hour:02d}{minute:02d}{z}"
 
+def fix_2400(timestr):
+    z = ''
+    if timestr.endswith('Z'):
+        timestr, z = timestr[:-1], 'Z'
+    if timestr[-4:] == '2400':
+        # Handles DDHHMM or YYYYMMDDHHMM
+        if len(timestr) >= 6:
+            prefix = timestr[:-6]
+            day = int(timestr[-6:-4])
+            day += 1
+            new_timestr = f"{prefix}{day:02d}0000{z}"
+            return new_timestr
+    return timestr + z
+
 # Apply correct rounding
 df["Validity from"] = df["Validity from"].astype(str).apply(round_down_to_half_hour)
 df["Validity To"] = df["Validity To"].astype(str).apply(round_up_to_next_half_hour)
+# Apply after rounding
+df["Validity from"] = df["Validity from"].astype(str).apply(fix_2400)
+df["Validity To"] = df["Validity To"].astype(str).apply(fix_2400)
 
 # Remove any trailing 'Z' from Issue date/time
 
