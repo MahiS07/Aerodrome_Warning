@@ -104,6 +104,57 @@ while i < len(lines):
 
 df = pd.DataFrame(data)
 
+def round_down_to_half_hour(timestr):
+    z = ''
+    if timestr.endswith('Z'):
+        timestr, z = timestr[:-1], 'Z'
+    if len(timestr) < 4:
+        return timestr + z
+    prefix = timestr[:-4]
+    hhmm = timestr[-4:]
+    hour = int(hhmm[:2])
+    minute = int(hhmm[2:])
+    if minute < 30:
+        minute = 0
+    else:
+        minute = 30
+    return f"{prefix}{hour:02d}{minute:02d}{z}"
+
+def round_up_to_next_half_hour(timestr):
+    z = ''
+    if timestr.endswith('Z'):
+        timestr, z = timestr[:-1], 'Z'
+    if len(timestr) < 4:
+        return timestr + z
+    prefix = timestr[:-4]
+    hhmm = timestr[-4:]
+    hour = int(hhmm[:2])
+    minute = int(hhmm[2:])
+    if minute == 0 or minute == 30:
+        return timestr + z
+    elif minute < 30:
+        minute = 30
+    else:
+        minute = 0
+        hour += 1
+        if hour == 24:
+            hour = 0
+    return f"{prefix}{hour:02d}{minute:02d}{z}"
+
+# Apply correct rounding
+df["Validity from"] = df["Validity from"].astype(str).apply(round_down_to_half_hour)
+df["Validity To"] = df["Validity To"].astype(str).apply(round_up_to_next_half_hour)
+
+# Remove any trailing 'Z' from Issue date/time
+
+def remove_trailing_z(val):
+    return val[:-1] if isinstance(val, str) and val.endswith('Z') else val
+
+df["Issue date/time"] = df["Issue date/time"].apply(remove_trailing_z)
+
+# Keep only rows where Station == 'VABB'
+df = df[df["Station"] == "VABB"].reset_index(drop=True)
+
 df["Wind dir (deg)"] = pd.to_numeric(df["Wind dir (deg)"], errors="coerce").astype("Int64")
 print(df)
 df.to_csv('AD_warn_DF.csv')
