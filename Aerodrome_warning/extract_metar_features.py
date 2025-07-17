@@ -10,6 +10,10 @@ with open('metar_cleaned.txt', 'r') as f:
 
 def extract_metar_features():
     for idx, row in ad_warn_df.iterrows():
+        fcst_obs = str(row.get('FCST/OBS', '')).strip().upper()
+        if fcst_obs != 'FCST':
+            print(f'\nRow {idx+1}: FCST/OBS is {fcst_obs}, skipping extraction.')
+            continue
         validity_from = str(row.get('Validity from', ''))
         validity_to = str(row.get('Validity To', ''))
         print(f'\nRow {idx+1}: Validity {validity_from} to {validity_to}')
