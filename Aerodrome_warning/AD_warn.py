@@ -17,7 +17,7 @@ while i < len(lines):
         main_line = lines[i]
         main_parts = main_line.split()
         station = main_parts[0]
-        issue_time = main_parts[1]
+        issue_time = f"{main_parts[1]}Z"
         validity_from, validity_to = "", ""
         valid_match = re.search(r"VALID\s*(\d{6,8})/(\d{6,8})", main_line)
         if valid_match:
