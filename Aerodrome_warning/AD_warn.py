@@ -93,7 +93,6 @@ while i < len(lines):
             "Issue date/time": issue_time,
             "Validity from": validity_from,
             "Validity To": validity_to,
-            "Wind dir": wind_dir,
             "Wind dir (deg)": wind_dir_num,
             "Wind Speed": wind_speed,
             "Gust": gust,
