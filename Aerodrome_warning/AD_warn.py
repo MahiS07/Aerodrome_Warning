@@ -17,12 +17,12 @@ while i < len(lines):
         main_line = lines[i]
         main_parts = main_line.split()
         station = main_parts[0]
-        issue_time = f"{main_parts[1]}Z"
+        issue_time = main_parts[1]
         validity_from, validity_to = "", ""
         valid_match = re.search(r"VALID\s*(\d{6,8})/(\d{6,8})", main_line)
         if valid_match:
-            validity_from = valid_match.group(1)
-            validity_to = valid_match.group(2)
+            validity_from = f"{valid_match.group(1)}Z"
+            validity_to = f"{valid_match.group(2)}Z"
         
         
         i += 1
@@ -106,3 +106,4 @@ df = pd.DataFrame(data)
 
 df["Wind dir (deg)"] = pd.to_numeric(df["Wind dir (deg)"], errors="coerce").astype("Int64")
 print(df)
+df.to_csv('AD_warn_DF.csv')
