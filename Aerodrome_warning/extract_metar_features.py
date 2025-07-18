@@ -27,13 +27,13 @@ def get_metar_time_group(metar):
 
 def extract_metar_features():
     with open('metar_extracted_features.txt', 'w') as out:
-        for idx, row in ad_warn_df.iterrows():
-            fcst_obs = str(row.get('FCST/OBS', '')).strip().upper()
+        for idx, row in enumerate(ad_warn_df.iterrows()):
+            fcst_obs = str(row[1].get('FCST/OBS', '')).strip().upper()
             if fcst_obs != 'FCST':
                 out.write(f'\nRow {idx+1}: FCST/OBS is {fcst_obs}, skipping extraction.\n')
                 continue
-            validity_from = str(row.get('Validity from', '')).replace('Z', '')
-            validity_to = str(row.get('Validity To', '')).replace('Z', '')
+            validity_from = str(row[1].get('Validity from', '')).replace('Z', '')
+            validity_to = str(row[1].get('Validity To', '')).replace('Z', '')
             out.write(f'\nRow {idx+1}: Validity {validity_from} to {validity_to}\n')
             extracting = False
             for metar in metar_lines:
@@ -47,8 +47,8 @@ def extract_metar_features():
                     wind_match = re.search(r' (\d{3})(\d{2})(G(\d{2,3}))?KT', metar)
                     wind_dir = int(wind_match.group(1)) if wind_match else None
                     wind_gust = int(wind_match.group(4)) if wind_match and wind_match.group(4) else None
-                    # Extract cloud groups (e.g., SCT020 SCT025)
-                    clouds = re.findall(r'(FEW\d{3}|SCT\d{3}|BKN\d{3}|OVC\d{3})', metar)
+                    # Extract cloud groups (e.g., SCT020 SCT025, FEW030CB)
+                    clouds = re.findall(r'(FEW\d{3}(?:CB|TCU)?|SCT\d{3}(?:CB|TCU)?|BKN\d{3}(?:CB|TCU)?|OVC\d{3}(?:CB|TCU)?)', metar)
                     out.write(f'  METAR: {metar}\n')
                     out.write(f'    Wind Dir: {wind_dir}, Gust: {wind_gust}, Clouds: {clouds}\n')
                 if metar_time == validity_to and extracting:

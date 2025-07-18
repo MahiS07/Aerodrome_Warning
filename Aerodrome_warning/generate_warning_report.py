@@ -2,7 +2,7 @@ import pandas as pd
 import re
 
 # Read warnings
-ad_warn_df = pd.read_csv('AD_warn_DF.csv')
+ad_warn_df = pd.read_csv('AD_warn_DF.csv', dtype={'Issue date/time': str})
 
 # Read extracted METAR features
 with open('metar_extracted_features.txt', 'r') as f:
@@ -19,7 +19,7 @@ for idx, row in ad_warn_df.iterrows():
     sig_wx = str(row.get('Significant Wx', ''))
     gust_val = str(row.get('Gust', ''))
     wind_dir_fcst = row.get('Wind dir (deg)', None)
-    issue_time = row.get('Issue date/time', '')
+    issue_time = str(row.get('Issue date/time', '')).zfill(6)
     true_false = 0
     remark = ''
 
@@ -43,7 +43,7 @@ for idx, row in ad_warn_df.iterrows():
             elements = 'Thunderstorm warning'
         else:
             elements = ''
-        remark = 'Observed - So True'
+        remark = 'OBS'
         results.append([sl_no, elements, issue_time, true_false, remark])
         continue
 
@@ -54,6 +54,7 @@ for idx, row in ad_warn_df.iterrows():
     dir_reported = ''
     cb_reported = ''
     tsra_reported = ''
+    cb_cloud_group = ''
 
     for line in metar_lines:
         # Gust
@@ -70,13 +71,18 @@ for idx, row in ad_warn_df.iterrows():
                         found_gust = True
                         found_dir = True
                         gust_reported = f'{metar_gust}KT'
-                        dir_reported = f'{metar_dir} matched'
+                        dir_reported = f'{metar_dir}'
                 except Exception:
                     pass
-        # CB cloud
-        if 'CB' in line:
-            found_cb = True
-            cb_reported = 'CB'
+        # CB cloud detection from Clouds list
+        clouds_match = re.search(r"Clouds: \[(.*?)\]", line)
+        if clouds_match:
+            clouds_list = [c.strip().strip("'") for c in clouds_match.group(1).split(',')]
+            cb_groups = [c for c in clouds_list if 'CB' in c]
+            if cb_groups:
+                found_cb = True
+                cb_reported = 'CB'
+                cb_cloud_group = cb_groups[0]  # Take the first CB group found
         # TSRA
         if re.search(r'TSRA', line):
             tsra_reported = 'TSRA'
@@ -90,26 +96,43 @@ for idx, row in ad_warn_df.iterrows():
     elif found_cb:
         elements = 'Thunderstorm warning'
 
+    # If elements is still empty, use the original warning type from ad_warn_df
+    if not elements:
+        if has_gust and has_tsra:
+            elements = 'Gust & Thunderstorm warning'
+        elif has_gust:
+            elements = 'Gust warning'
+        elif has_tsra:
+            elements = 'Thunderstorm warning'
+
     # Logic for true/false and remarks (unchanged)
     if has_gust and not has_tsra:
         if found_gust and found_dir:
             true_false = 1
             remark = f'Gust {gust_reported} Dir {dir_reported} matched'
+            if cb_cloud_group:
+                remark += f'{cb_cloud_group} found'
         else:
             remark = 'No gust/direction mismatch'
     elif has_gust and has_tsra:
         if found_gust and found_dir:
             true_false = 1
             remark = f'Gust {gust_reported} Dir {dir_reported} matched'
+            if cb_cloud_group:
+                remark += f'{cb_cloud_group} found'
         elif found_cb:
             true_false = 1
-            remark = 'CB, TSRA found'
+            remark = ''
+            if cb_cloud_group:
+                remark += f'{cb_cloud_group} found'
         else:
             remark = 'Missing CB or direction mismatch'
     elif has_tsra:
         if found_cb:
             true_false = 1
-            remark = 'CB, TSRA found'
+            remark = ''
+            if cb_cloud_group:
+                remark += f'{cb_cloud_group} found'
         else:
             remark = 'Missing CB or direction mismatch'
     else:
